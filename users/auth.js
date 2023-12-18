@@ -1,22 +1,45 @@
 // auth.js
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../database/db'); // Import the database connection
+
+
 
 async function signup(username, email, password, role, age) {
   const hashedPassword = await bcrypt.hash(password, 10);
   const defaultRole = role || 'viewer';
 
-  const query = 'INSERT INTO users (username, email, password, role,age) VALUES (?, ?, ?, ?,?)';
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS users (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      username VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      role VARCHAR(255) NOT NULL,
+      age INT
+    )
+  `;
+
+  const insertUserQuery = 'INSERT INTO users (username, email, password, role, age) VALUES (?, ?, ?, ?, ?)';
 
   return new Promise((resolve, reject) => {
-    db.query(query, [username, email, hashedPassword, defaultRole, age], (err, result) => {
-      if (err) {
-        console.error('Error signing up:', err);
-        reject('Error signing up');
+    // First, create the table if it doesn't exist
+    db.query(createTableQuery, (createTableErr) => {
+      if (createTableErr) {
+        console.error('Error creating table:', createTableErr);
+        reject('Error creating table');
         return;
       }
-      resolve(result);
+
+      // Then, insert the user data
+      db.query(insertUserQuery, [username, email, hashedPassword, defaultRole, age], (err, result) => {
+        if (err) {
+          console.error('Error signing up:', err);
+          reject('Error signing up');
+          return;
+        }
+        resolve(result);
+      });
     });
   });
 }

@@ -4,16 +4,37 @@ const db = require('../database/db'); // Import the database connection
 
 
 async function createVideo(videoData) {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS videos (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            contentTitle VARCHAR(255) NOT NULL,
+            producer VARCHAR(255) NOT NULL,
+            genre VARCHAR(255) NOT NULL,
+            publisher VARCHAR(255) NOT NULL,
+            videoUrl VARCHAR(255) NOT NULL,
+            pg INT,
+            date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+    `;
+
     return new Promise((resolve, reject) => {
         const query = 'INSERT INTO videos SET ?';
 
-        db.query(query, videoData, (error, results) => {
-            if (error) {
-                console.error('Error executing query:', error);
-                reject(error);
-            } else {
-                resolve(results);
+        db.query(createTableQuery, (createTableErr) => {
+            if (createTableErr) {
+                console.error('Error creating table:', createTableErr);
+                reject('Error creating table');
+                return;
             }
+
+            db.query(query, videoData, (error, results) => {
+                if (error) {
+                    console.error('Error executing query:', error);
+                    reject(error);
+                } else {
+                    resolve(results);
+                }
+            });
         });
     });
 }
@@ -23,6 +44,9 @@ async function getVideos(searchQuery) {
         if (searchQuery) {
             query += ` WHERE contentTitle LIKE '%${searchQuery}%' OR contentTitle LIKE '%${searchQuery}%'`;
         }
+        // Add ORDER BY clause to sort by the 'date' column in descending order
+        query += ' ORDER BY date DESC';
+
         db.query(query, (error, results) => {
             if (error) {
                 console.error('Error executing query:', error);
@@ -32,7 +56,7 @@ async function getVideos(searchQuery) {
             }
         });
     });
-};
+}
 
 async function getVideoById(videoId) {
     return new Promise((resolve, reject) => {
@@ -54,11 +78,24 @@ async function getVideoById(videoId) {
 
 async function addVideoFeedBack(videoId, comment, rating) {
     return new Promise((resolve, reject) => {
+        const createTableQuery = `
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                video_id INT,
+                comment VARCHAR(255) NOT NULL,
+                rating INT
+            )
+        `;
+
         const query = 'INSERT INTO feedback (video_id, comment, rating) VALUES (?, ?, ?)';
-        db.query(
-            query,
-            [videoId, comment, rating],
-            (error) => {
+        db.query(createTableQuery, (createTableErr) => {
+            if (createTableErr) {
+                console.error('Error creating table:', createTableErr);
+                reject('Error creating table');
+                return;
+            }
+
+            db.query(query, [videoId, comment, rating], (error) => {
                 if (error) {
                     console.error('Error adding feedback:', error);
                     reject('Internal Server Error');
@@ -66,8 +103,8 @@ async function addVideoFeedBack(videoId, comment, rating) {
                     console.log('Comment and rating added successfully');
                     resolve();
                 }
-            }
-        );
+            });
+        });
     });
 }
 

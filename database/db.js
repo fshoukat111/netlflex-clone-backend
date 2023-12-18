@@ -1,11 +1,15 @@
 const mysql = require('mysql');
+const fs = require('fs');
 
 // MySQL connection configuration
 const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
+    host: 'netflixdbserver.mysql.database.azure.com',
+    user: 'tester',
+    password: '@Myproject',
     database: 'netflix_db',
+    ssl: {
+    }
+
 });
 
 // Connect to MySQL
